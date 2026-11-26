@@ -6,7 +6,7 @@
 // Metalness/roughness + the procedural metal texture give it a PBR sheen.
 'use strict';
 
-const HULL = [0.85, 0.9, 0.95], TRIM = [0.13, 0.16, 0.2], CYAN = [0.25, 0.95, 1.0];
+const HULL = [0.85, 0.9, 0.95], TRIM = [0.26, 0.31, 0.38], CYAN = [0.25, 0.95, 1.0];
 const GLASS = [0.3, 0.75, 0.95], AMBER = [1.0, 0.62, 0.15];
 
 function buildJet(gl, metalTex) {
@@ -24,21 +24,62 @@ function buildJet(gl, metalTex) {
   // Canopy: tinted glass frustum with emissive instrument spill.
   b.frustum(-3.4, 0.95, 0.5, -1.9, 1.15, 0.72, 0.88, 0.92, GLASS, { rough: 0.08, metal: 0.9, emissive: 0.22 });
   b.frustum(-1.9, 1.15, 0.72, -0.5, 0.8, 0.4, 0.92, 0.8, GLASS, { rough: 0.08, metal: 0.9, emissive: 0.22 });
-  // Wings: swept, slightly drooped; cyan navigation lights ride the tips.
+  // Wings with REAL chord thickness: a slab() is a top face in bright
+  // silver-slate, a darker underside, and bevelled leading/trailing/tip
+  // edges — so from behind the wing reads as solid metal, never a razor.
+  const SLATE = [0.98, 1.0, 1.05], UNDER = [0.32, 0.37, 0.44];
+  const slab = (a, bq, c, d, t, opt) => {
+    const dn = (p) => [p[0], p[1] - t, p[2]];
+    b.quad(a, bq, c, d, SLATE, opt);
+    b.quad(dn(d), dn(c), dn(bq), dn(a), UNDER, opt);
+    b.quad(dn(a), dn(bq), bq, a, SLATE, opt);
+    b.quad(dn(c), dn(d), d, c, SLATE, opt);
+    b.quad(dn(bq), dn(c), c, bq, SLATE, opt);
+  };
   for (const s of [-1, 1]) {
-    b.quad([s * 0.7, -0.05, -0.6], [s * 4.9, -0.5, 1.9], [s * 4.9, -0.42, 2.6], [s * 0.7, 0.05, 0.9], HULL, M);
-    b.quad([s * 0.7, 0.05, 0.9], [s * 4.9, -0.42, 2.6], [s * 4.9, -0.5, 1.9], [s * 0.7, -0.05, -0.6], TRIM, M);
-    b.box(s * 4.95, -0.42, 2.25, 0.34, 0.2, 0.8, CYAN, { emissive: 1.0 });
-    b.halo(s * 5.1, -0.42, 2.25, 1.5, [0.3, 0.9, 1.0]);
-    // Tailplanes + twin canted fins with amber tips.
-    b.quad([s * 0.55, 0.1, 4.6], [s * 2.7, 0.02, 5.9], [s * 2.7, 0.1, 6.4], [s * 0.55, 0.18, 5.6], HULL, M);
-    b.quad([s * 0.62, 0.3, 4.3], [s * 1.15, 2.15, 5.6], [s * 1.3, 2.2, 6.3], [s * 0.72, 0.35, 5.9], TRIM, M);
-    b.box(s * 1.22, 2.2, 5.95, 0.3, 0.22, 0.7, AMBER, { emissive: 0.9 });
+    // Main delta wing (root chord 1.7 m, tip chord 0.9 m, 0.17 m thick).
+    slab([s * 0.7, -0.02, -0.7], [s * 4.9, -0.48, 1.8], [s * 4.9, -0.42, 2.7], [s * 0.7, 0.04, 1.0], 0.17, M);
+    b.box(s * 4.98, -0.45, 2.25, 0.3, 0.18, 0.8, CYAN, { emissive: 1.0 });
+    b.halo(s * 5.1, -0.45, 2.25, 1.1, [0.3, 0.9, 1.0]);
+    // Horizontal tailplane, also a slab.
+    slab([s * 0.55, 0.12, 4.6], [s * 2.75, 0.04, 5.9], [s * 2.75, 0.08, 6.45], [s * 0.55, 0.18, 5.6], 0.12, M);
+    // Twin fins: tapered, canted ~18° outward (top leans away from centre),
+    // built as two faces + a cap so they have thickness from behind.
+    const fin = [[s * 0.60, 0.30, 4.25], [s * 1.06, 2.2, 5.5], [s * 1.28, 2.26, 6.3], [s * 0.72, 0.35, 5.95]];
+    const off = (p) => [p[0] + s * 0.1, p[1], p[2]];
+    b.quad(fin[0], fin[1], fin[2], fin[3], TRIM, M);
+    b.quad(off(fin[3]), off(fin[2]), off(fin[1]), off(fin[0]), TRIM, M);
+    b.quad(fin[1], off(fin[1]), off(fin[2]), fin[2], TRIM, M);
+    b.box(s * 1.19, 2.28, 5.9, 0.34, 0.16, 0.75, AMBER, { emissive: 0.9 });
+    // Under-wing stores: an outboard missile and an inboard drop tank,
+    // authored around the origin then absorbed at their outboard stations.
+    b.box(s * 3.1, -0.72, 1.6, 0.14, 0.3, 0.5, TRIM, M);
+    b.box(s * 1.7, -0.7, 1.5, 0.14, 0.28, 0.5, TRIM, M);
+    const missile = new GeoBuilder();
+    missile.frustum(0.3, 0.3, 0.3, 2.2, 0.3, 0.3, -0.95, -0.95, SLATE, M);
+    missile.frustum(-0.55, 0.04, 0.04, 0.3, 0.3, 0.3, -0.95, -0.95, [0.9, 0.3, 0.15], M); // nose cone, forward
+    missile.box(0, -0.95, 1.95, 0.52, 0.16, 0.1, TRIM, M);   // rear fins
+    missile.box(0, -0.95, 1.95, 0.1, 0.52, 0.16, TRIM, M);
+    b.absorb(missile, s * 3.1, 0, 0);
+    const tank = new GeoBuilder();
+    tank.frustum(-0.15, 0.1, 0.1, 0.5, 0.46, 0.46, -0.92, -0.92, UNDER, M);  // rounded nose
+    tank.frustum(0.5, 0.46, 0.46, 2.4, 0.4, 0.4, -0.92, -0.92, UNDER, M);
+    tank.frustum(2.4, 0.4, 0.4, 2.9, 0.1, 0.1, -0.92, -0.92, UNDER, M);
+    b.absorb(tank, s * 1.7, 0, 0);
   }
   // Intakes under the wing roots.
   for (const s of [-1, 1]) b.box(s * 1.05, -0.55, 0.4, 0.8, 0.55, 3.4, TRIM, M);
-  // Twin burner cans.
-  for (const s of [-1, 1]) b.box(s * 0.42, 0.12, 6.85, 0.55, 0.55, 0.5, [0.1, 0.1, 0.12], { rough: 0.4, metal: 0.8 });
+  // Twin burner cans + circular metallic exhaust nozzles with a hot core.
+  for (const s of [-1, 1]) {
+    b.box(s * 0.42, 0.12, 6.7, 0.6, 0.6, 0.45, [0.1, 0.1, 0.12], { rough: 0.4, metal: 0.8 });
+    const cx = s * 0.42, cy = 0.12, seg = 10;
+    const P = (z, r, a) => [cx + Math.cos(a) * r, cy + Math.sin(a) * r, z];
+    for (let i = 0; i < seg; i++) {
+      const a0 = i / seg * Math.PI * 2, a1 = (i + 1) / seg * Math.PI * 2;
+      b.quad(P(6.85, 0.35, a0), P(6.85, 0.35, a1), P(7.2, 0.28, a1), P(7.2, 0.28, a0), [0.6, 0.64, 0.68], { rough: 0.28, metal: 0.95 });
+      b._tri([cx, cy, 7.18], P(7.18, 0.21, a0), P(7.18, 0.21, a1), [1.0, 0.55, 0.16], { emissive: 0.85 });
+    }
+  }
 
   // Gear is its own mesh: struts + wheels, drawn only when gear is down.
   const g = new GeoBuilder();
@@ -52,17 +93,19 @@ function buildJet(gl, metalTex) {
   return { hull: b.build(gl), gear: g.build(gl), hullHalos: b.halos, tex: metalTex };
 }
 
-// Afterburner plume: nested additive-feel frustums, rebuilt per frame from
-// throttle/boost so the flame breathes. Orange core inside a blue sheath.
+// Afterburner plume: two TIGHT concentric cones per nozzle — a short
+// cyan-blue sheath around a crisp orange core — rebuilt per frame from
+// throttle/boost. Deliberately small: the tail must never sit in a white blob.
 function buildPlume(gl, throttle, boost) {
   const b = new GeoBuilder();
-  const len = 1.1 + throttle * 2.6 + (boost ? 2.6 : 0);
-  const w0 = 0.34, flicker = 0.92 + Math.random() * 0.16;
+  const len = 0.85 + throttle * 1.25 + (boost ? 1.05 : 0);
+  const flicker = 0.94 + Math.random() * 0.12;
   for (const s of [-1, 1]) {
-    const x = s * 0.42;
-    b.frustum(7.05, w0, w0, 7.05 + len * 0.55, w0 * 0.62, w0 * 0.62, 0.12, 0.12, [0.45, 0.65, 1.0], { emissive: 0.85 });
-    b.frustum(7.05, w0 * 0.6, w0 * 0.6, 7.05 + len * flicker, 0.05, 0.05, 0.12, 0.12, [1.0, 0.55, 0.14], { emissive: 1.0 });
-    b.halo(x, 0.12, 7.3 + len * 0.4, 1.6 + throttle, [1.0, 0.55, 0.2]);
+    const plume = new GeoBuilder();
+    plume.frustum(7.18, 0.27, 0.27, 7.18 + len * 0.62, 0.13, 0.13, 0.12, 0.12, [0.38, 0.62, 1.0], { emissive: 0.7 });
+    plume.frustum(7.18, 0.155, 0.155, 7.18 + len * flicker, 0.03, 0.03, 0.12, 0.12, [1.0, 0.6, 0.16], { emissive: 1.0 });
+    plume.halo(0, 0.12, 7.3 + len * 0.3, 0.8, [0.95, 0.5, 0.18]);
+    b.absorb(plume, s * 0.42, 0, 0);
   }
   return { mesh: b.build(gl), halos: b.halos };
 }

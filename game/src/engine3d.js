@@ -143,6 +143,14 @@ class GeoBuilder {
   }
   // A glow sprite anchor: rendered later as an additive billboard (fake bloom).
   halo(x, y, z, size, col) { this.halos.push({ p: [x, y, z], size, col }); }
+  // Merge another builder's geometry with a positional offset — for parts
+  // authored around the origin (frustums) that must sit outboard, e.g. stores.
+  absorb(o, dx, dy, dz) {
+    for (let i = 0; i < o.pos.length; i += 3) this.pos.push(o.pos[i] + dx, o.pos[i + 1] + dy, o.pos[i + 2] + dz);
+    this.col.push(...o.col); this.uv.push(...o.uv); this.mat.push(...o.mat);
+    this._n = this._n || []; if (o._n) this._n.push(...o._n);
+    for (const h of o.halos) this.halos.push({ p: [h.p[0] + dx, h.p[1] + dy, h.p[2] + dz], size: h.size, col: h.col });
+  }
   build(gl) {
     const mk = (arr, itemSize) => {
       const buf = gl.createBuffer();
