@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Canyon Viper — VF-9 Desert Interceptor</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='13' font-size='13'%3E✈%3C/text%3E%3C/svg%3E">
+<style>
+  html, body { margin:0; height:100%; overflow:hidden; background:#1a0f0a; font-family:"Segoe UI", Arial, sans-serif; }
+  #gl { position:fixed; inset:0; width:100%; height:100%; display:block; }
+  .glass { background:rgba(8,16,22,.62); border:1px solid rgba(140,230,255,.45); border-radius:10px;
+           color:#dff6ff; backdrop-filter:blur(3px); box-shadow:0 2px 14px rgba(0,0,0,.45); }
+  #mission { position:fixed; top:14px; left:14px; padding:10px 14px; min-width:230px; }
+  #mission h1 { margin:0 0 2px; font-size:19px; letter-spacing:2px; color:#ffd257; }
+  #mission .sub { font-size:11px; letter-spacing:1px; color:#9fd8e8; }
+  #mission .obj { margin-top:6px; font-size:13px; }
+  #scoreBox { position:fixed; top:14px; right:14px; padding:10px 16px; text-align:right; }
+  #scoreBox .score { font-size:30px; font-weight:700; color:#ffd257; line-height:1; }
+  #scoreBox .lbl { font-size:10px; letter-spacing:2px; color:#9fd8e8; }
+  #scoreBox .rings { margin-top:4px; font-size:13px; color:#aef3c1; }
+  .tape { position:fixed; bottom:16px; padding:8px 14px; text-align:center; min-width:118px; }
+  .tape .val { font-size:32px; font-weight:700; color:#eafcff; line-height:1.05; font-variant-numeric:tabular-nums; }
+  .tape .lbl { font-size:10px; letter-spacing:2px; color:#8fd8ef; }
+  .tape .unit { font-size:11px; color:#8fd8ef; }
+  #altBox { left:14px; } #spdBox { left:160px; } #hdgBox { right:14px; }
+  #flags { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); padding:7px 14px;
+           font-size:12px; letter-spacing:1px; color:#cfeef8; white-space:nowrap; }
+  #flags b { color:#ffd257; } #flags .on { color:#7dff9a; } #flags .warn { color:#ff7d6b; font-weight:700; }
+  #ladder { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); pointer-events:none; }
+  #banner { position:fixed; top:19%; left:50%; transform:translateX(-50%); padding:12px 30px; text-align:center;
+            display:none; }
+  #banner .big { font-size:34px; font-weight:800; letter-spacing:3px; color:#ffd257; }
+  #banner .small { font-size:13px; color:#dff6ff; letter-spacing:1px; }
+  #help { position:fixed; bottom:64px; left:50%; transform:translateX(-50%); font-size:11px; color:rgba(220,245,255,.85);
+          text-shadow:0 1px 3px #000; letter-spacing:.4px; white-space:nowrap; }
+  #titleCard { position:fixed; left:34px; bottom:110px; padding:14px 20px; display:none; }
+  #titleCard .t1 { font-size:30px; font-weight:800; letter-spacing:4px; color:#ffd257; }
+  #titleCard .t2 { font-size:13px; color:#dff6ff; letter-spacing:1px; margin-top:2px; }
+  #status { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+</style>
+</head>
+<body>
+<canvas id="gl" aria-label="Canyon Viper flight game: fly the VF-9 interceptor through Viper Gorge"></canvas>
+
+<div id="mission" class="glass">
+  <h1>CANYON VIPER</h1>
+  <div class="sub">VF-9 VIPER · VIPER GORGE · <span id="modeName">RING TRIAL</span></div>
+  <div class="obj" id="objective">Thread the golden rings — next ring <b id="nextRing">—</b></div>
+</div>
+
+<div id="scoreBox" class="glass">
+  <div class="lbl">MISSION SCORE</div>
+  <div class="score" id="score">0</div>
+  <div class="rings">RINGS <span id="ringCount">0 / 10</span> · TIME <span id="clock">0:00</span></div>
+</div>
+
+<div id="altBox" class="tape glass"><div class="lbl">ALTITUDE · ALT</div><div class="val" id="alt">1,240</div><div class="unit">FEET MSL</div></div>
+<div id="spdBox" class="tape glass"><div class="lbl">AIRSPEED · SPD</div><div class="val" id="spd">318</div><div class="unit">KNOTS</div></div>
+<div id="hdgBox" class="tape glass"><div class="lbl">HEADING · HDG</div><div class="val" id="hdg">357°</div><div class="unit" id="hdgCard">N · GORGE RUN</div></div>
+
+<div id="flags" class="glass">GEAR <b id="gearFlag" class="on">DOWN</b> · BRAKE <b id="brakeFlag">OFF</b> · BOOST <b id="boostFlag">READY</b> · <span id="warnFlag"></span></div>
+<div id="help">↑↓ pitch · ←→ roll · A/D rudder · W/S throttle · SHIFT boost · SPACE airbrake · G gear · C camera · F free flight · R reset · mouse steers</div>
+
+<canvas id="ladder" width="340" height="240"></canvas>
+
+<div id="banner" class="glass"><div class="big" id="bannerBig">RING!</div><div class="small" id="bannerSmall">+1,000</div></div>
+
+<div id="titleCard" class="glass">
+  <div class="t1">CANYON VIPER</div>
+  <div class="t2">Twin-tail desert interceptor · Ring time-trial &amp; runway landing · Viper Field, Viper Gorge</div>
+</div>
+
+<p id="status" role="status" aria-live="polite"></p>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
