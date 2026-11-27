@@ -3,18 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Canyon Viper — VF-9 Desert Interceptor</title>
+<title>Canyon Viper — VF-9 Desert Interceptor · Ring Trial + Target Strike</title>
 <style>
   html, body { margin: 0; height: 100%; background: #0b141c; overflow: hidden; font-family: "Segoe UI", system-ui, sans-serif; }
   #gl { width: 100%; height: 100%; display: block; }
+  #vignette { position: fixed; inset: 0; pointer-events: none; z-index: 3;
+              background: radial-gradient(ellipse at center, rgba(0,0,0,0) 58%, rgba(10,6,2,0.32) 100%); }
   .hud { position: fixed; color: #d9f4ff; text-shadow: 0 1px 3px rgba(0,0,0,.8); pointer-events: none; z-index: 5; }
   .glass { background: rgba(8, 24, 34, .55); border: 1px solid rgba(120, 220, 255, .45); border-radius: 10px;
            padding: 8px 12px; backdrop-filter: blur(3px); box-shadow: 0 2px 14px rgba(0,0,0,.35); }
   .lab { font-size: 10px; letter-spacing: 2px; color: #8fd8ff; }
   .val { font-family: Consolas, monospace; font-size: 24px; font-weight: 700; color: #fff; }
   .unit { font-size: 10px; color: #9fc6d8; }
-  #hud-left { left: 14px; top: 14px; display: flex; gap: 10px; }
+  #hud-left { left: 14px; top: 14px; display: flex; gap: 10px; align-items: flex-start; }
+  #hud-burn { display: none; background: #ff7a1e; color: #fff; font-size: 10px; font-weight: 800; letter-spacing: 1px;
+              border-radius: 5px; padding: 2px 6px; margin-top: 5px; text-shadow: none; }
   #hud-right { right: 14px; top: 14px; text-align: right; }
+  #hud-combo { color: #ffd23e; font-size: 14px; font-weight: 800; letter-spacing: 1px; min-height: 18px; }
   #hud-mission { left: 14px; bottom: 118px; }
   #hud-res { left: 14px; bottom: 14px; width: 218px; }
   .bar { height: 9px; background: rgba(255,255,255,.14); border-radius: 5px; overflow: hidden; margin: 2px 0 7px; }
@@ -27,16 +32,17 @@
   #hud-radar { right: 14px; bottom: 14px; padding: 4px; }
   #banner { left: 50%; top: 15%; transform: translateX(-50%); font-size: 25px; font-weight: 800; letter-spacing: 1px;
             color: #ffd23e; opacity: 0; transition: opacity .3s; text-align: center; }
-  #title { left: 50%; top: 12px; transform: translateX(-50%); text-align: center; }
+  #title { left: 50%; top: 12px; transform: translateX(-50%); text-align: center; transition: opacity 1.2s; }
   #title .name { font-size: 19px; font-weight: 800; letter-spacing: 4px; color: #fff; }
   #title .sub { font-size: 10px; letter-spacing: 3px; color: #8fd8ff; }
   #help { left: 50%; bottom: 176px; transform: translateX(-50%); font-size: 11.5px; color: #cfe9ff; white-space: nowrap;
-          padding: 5px 16px; }
+          padding: 5px 16px; transition: opacity 1.4s; }
   canvas.radar, canvas.ladder { display: block; }
 </style>
 </head>
 <body>
 <canvas id="gl"></canvas>
+<div id="vignette"></div>
 
 <div class="hud" id="title"><div class="name">CANYON VIPER</div><div class="sub">VF-9 DESERT INTERCEPTOR · VIPER GORGE</div></div>
 
@@ -44,12 +50,13 @@
   <div><div class="lab">ALT · FT</div><div class="val" id="hud-alt">00000</div></div>
   <div><div class="lab">SPD · KT</div><div class="val" id="hud-spd">000</div></div>
   <div><div class="lab">HDG</div><div class="val" id="hud-hdg">000</div></div>
-  <div><div class="lab">THR</div><div class="val" id="hud-thr">0%</div></div>
+  <div><div class="lab">THR</div><div class="val" id="hud-thr">0%</div><span id="hud-burn">BURN</span></div>
   <div><div class="lab">GEAR</div><div class="val" id="hud-gear" style="font-size:17px;line-height:29px">GEAR ▼</div></div>
 </div>
 
 <div class="hud glass" id="hud-right">
   <div class="lab">SCORE</div><div class="val" id="hud-score">000000</div>
+  <div id="hud-combo"></div>
   <div class="lab" style="margin-top:4px">RINGS <span class="val" style="font-size:16px" id="hud-rings">0 / 10</span>
   &nbsp;·&nbsp; CLOCK <span class="val" style="font-size:16px" id="hud-clock">3:00</span></div>
   <div class="lab" style="margin-top:4px">MODE <span class="val" style="font-size:14px" id="hud-mode">RING TRIAL</span></div>
@@ -67,7 +74,7 @@
 <div class="hud glass" id="hud-ladder"><canvas class="ladder" id="ladder" width="190" height="150"></canvas></div>
 <div class="hud glass" id="hud-radar"><canvas class="radar" id="radar" width="148" height="148"></canvas></div>
 <div class="hud" id="banner"></div>
-<div class="hud glass" id="help">ARROWS / WASD fly · mouse drag steers · SHIFT boost · SPACE brake · PGUP/PGDN throttle · G gear · C camera · F free flight · R reset</div>
+<div class="hud glass" id="help">ARROWS / WASD fly · mouse drag steers · SHIFT boost · S brake · X / SPACE fire missile · PGUP/PGDN throttle · G gear · C camera · F free flight · R reset</div>
 
 <script src="vendor/three.min.js"></script>
 <script src="src/flight3d.js"></script>
